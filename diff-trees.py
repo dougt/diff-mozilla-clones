@@ -4,8 +4,8 @@ import urllib2
 import simplejson
 import re
 
-srcdir_1 = "/builds/mozilla-central"
-srcdir_2 = "/builds/mozilla-aurora"
+srcdir_1 = "./mozilla-central"
+srcdir_2 = "./mozilla-aurora"
 directory_of_interest = "mobile/android"
 
 srcdir_1_hash = {}
@@ -19,9 +19,15 @@ def getBugInfo(bug):
         opener = urllib2.build_opener()
         f = opener.open(req)
         result = simplejson.load(f)
-        return result['assigned_to']['real_name'], result['summary']
+        not11 = "false"
+        try:
+            if "not-fennec-11" in result['whiteboard']:
+                not11 = "true"
+        except KeyError:
+            not11 = "false"
+        return result['assigned_to']['real_name'], result['summary'], not11
     except urllib2.HTTPError:
-        return "Stuart", "I do not have a pony. See bug " + bug
+        return "Stuart", "I do not have a pony. See bug " + bug, "true"
 
 def populateHash(srcdir, hashtable):
     cmd = "hg log " + directory_of_interest
@@ -64,13 +70,20 @@ html_out =\
 "</style></head><body>"\
 "<h1>Diff Between" + srcdir_1 + " and " + srcdir_2 + "</h1>"\
 "<h2>Diffing directory: " + directory_of_interest + "</h2>"\
-"<div id=\"container\">"
+"<div id=\"container\">\n"
 
 for index in enumerate(bugs_that_have_not_landed):
     info = getBugInfo(index[1])
-    html_out += "<div id=\"row\"><div id=\"bugnum\"> <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=" + index[1] + "\">" + index[1] + "</a></div>"
-    html_out += "<div id=\"owner\">" + info[0] + "</div>"
-    html_out += "<div id=\"summary\">" + info[1] + "</div></div>"
+    if info is None:
+        continue
+    html_out += "<div id=\"row\" "
+    if info[2] is "true":
+        html_out += "style=\"text-decoration: line-through;\""
+    html_out += ">\n"
+    html_out += "\t<span id=\"bugnum\"> <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=" + index[1] + "\">" + index[1] + "</a></span>"
+    html_out += "<span id=\"owner\">" + info[0] + "</span>"
+    html_out += "<span id=\"summary\">" + info[1] + "</span>\n"
+    html_out += "</div>\n"
 
 html_out += "</div></body></html>"
 
