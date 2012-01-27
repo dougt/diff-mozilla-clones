@@ -6,7 +6,10 @@ import re
 
 srcdir_1 = "./mozilla-central"
 srcdir_2 = "./mozilla-aurora"
-directory_of_interest = "mobile/android"
+directory_of_interest_1a = "mobile/android"
+directory_of_interest_2a = "mobile/android"
+directory_of_interest_1b = "widget/src/android"
+directory_of_interest_2b = "widget/android"
 
 srcdir_1_hash = {}
 srcdir_2_hash = {}
@@ -29,8 +32,8 @@ def getBugInfo(bug):
     except urllib2.HTTPError:
         return "Stuart", "I do not have a pony. See bug " + bug, "true"
 
-def populateHash(srcdir, hashtable):
-    cmd = "hg log " + directory_of_interest
+def populateHash(srcdir, hashtable, dir_to_diff):
+    cmd = "hg log " + dir_to_diff
     p = Popen(cmd, cwd=srcdir, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
 
@@ -44,10 +47,12 @@ subprocess.call(["hg", "pull", "-u"], cwd=srcdir_1)
 subprocess.call(["hg", "pull", "-u"], cwd=srcdir_2)
 
 print "collecting data about " + srcdir_1
-populateHash(srcdir_1, srcdir_1_hash)
+populateHash(srcdir_1, srcdir_1_hash, directory_of_interest_1a)
+populateHash(srcdir_1, srcdir_1_hash, directory_of_interest_1b)
 
 print "collecting data about " + srcdir_2
-populateHash(srcdir_2, srcdir_2_hash)
+populateHash(srcdir_2, srcdir_2_hash, directory_of_interest_2a)
+populateHash(srcdir_2, srcdir_2_hash, directory_of_interest_2b)
 
 print "checking to see what hasn't landed in " + srcdir_2 
 
@@ -69,7 +74,6 @@ html_out =\
 "#summary { width: 60%; display: table-cell;}"\
 "</style></head><body>"\
 "<h1>Diff Between" + srcdir_1 + " and " + srcdir_2 + "</h1>"\
-"<h2>Diffing directory: " + directory_of_interest + "</h2>"\
 "<div id=\"container\">\n"
 
 for index in enumerate(bugs_that_have_not_landed):
@@ -89,7 +93,7 @@ html_out += "</div></body></html>"
 
 
 fout = open("data.html", "w")
-fout.write(html_out)
+fout.write(html_out.encode('UTF-8'))
 
 
 
