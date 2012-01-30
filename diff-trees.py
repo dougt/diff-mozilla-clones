@@ -3,6 +3,7 @@ from subprocess import Popen, PIPE
 import urllib2
 import simplejson
 import re
+from datetime import datetime
 
 srcdir_1 = "./mozilla-central"
 srcdir_2 = "./mozilla-aurora"
@@ -10,6 +11,7 @@ directory_of_interest_1a = "mobile/android"
 directory_of_interest_2a = "mobile/android"
 directory_of_interest_1b = "widget/src/android"
 directory_of_interest_2b = "widget/android"
+aurora_merge_date = datetime.strptime("2011-12-21", "%Y-%m-%d");
 
 srcdir_1_hash = {}
 srcdir_2_hash = {}
@@ -23,6 +25,8 @@ def getBugInfo(bug):
         f = opener.open(req)
         result = simplejson.load(f)
         not11 = "false"
+        if datetime.strptime(result['last_change_time'], '%Y-%m-%dT%H:%M:%SZ') < aurora_merge_date:
+            return None
         try:
             if "not-fennec-11" in result['whiteboard']:
                 not11 = "true"
