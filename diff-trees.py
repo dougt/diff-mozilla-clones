@@ -1,17 +1,46 @@
+import sys
 import subprocess
 from subprocess import Popen, PIPE
 import urllib2
 import simplejson
 import re
 from datetime import datetime
+from optparse import OptionParser
 
-srcdir_1 = "./mozilla-central"
-srcdir_2 = "./mozilla-aurora"
-directory_of_interest_1a = "mobile/android"
-directory_of_interest_2a = "mobile/android"
-directory_of_interest_1b = "widget/src/android"
-directory_of_interest_2b = "widget/android"
-aurora_merge_date = datetime.strptime("2011-12-21", "%Y-%m-%d");
+parser = OptionParser()
+usage = "usage: %prog [options] arg1 arg2"
+parser = OptionParser(usage=usage)
+
+parser.add_option("-f", "--from",
+                  help="date to restrict search from. you can use the form yyyy-mm-dd.",
+		  dest="date")
+
+parser.add_option("-d", "--directory", dest="directories",
+		  action="append",
+                  help="directory to diff.  if not specified, all directories assumped.", metavar="FILE")
+
+(options, args) = parser.parse_args()
+
+if len(args) != 2:
+    parser.print_usage()
+    print "\targ1 and arg2 are missing\n"
+    sys.exit()
+
+srcdir_1 = args[0]
+srcdir_2 = args[1]
+
+if options.date is None:
+    date="1970-01-01"
+else:
+    date = options.date
+
+ignore_before_date = datetime.strptime(date, "%Y-%m-%d");
+
+directories = []
+if options.directories is None:
+    directories.append('/')
+else:
+    directories = options.directories
 
 srcdir_1_hash = {}
 srcdir_2_hash = {}
@@ -25,7 +54,7 @@ def getBugInfo(bug):
         f = opener.open(req)
         result = simplejson.load(f)
         not11 = "false"
-        if datetime.strptime(result['last_change_time'], '%Y-%m-%dT%H:%M:%SZ') < aurora_merge_date:
+        if datetime.strptime(result['last_change_time'], '%Y-%m-%dT%H:%M:%SZ') < ignore_before_date:
             return None
         try:
             if "not-fennec-11" in result['whiteboard']:
@@ -50,23 +79,27 @@ print "updating source directories:"
 subprocess.call(["hg", "pull", "-u"], cwd=srcdir_1)
 subprocess.call(["hg", "pull", "-u"], cwd=srcdir_2)
 
-print "collecting data about " + srcdir_1
-populateHash(srcdir_1, srcdir_1_hash, directory_of_interest_1a)
-populateHash(srcdir_1, srcdir_1_hash, directory_of_interest_1b)
+for i, v in enumerate(directories):
+    index = v.find(":")
+    path1 = ""
+    path2 = ""
+    if index == -1:
+        path1 = v
+        path2 = v
+    else:
+        path1 = v[:index]
+        path2 = v[index+1:]
+    print "collecting data about " + path1 + " <--> " + path2
+    populateHash(srcdir_1, srcdir_1_hash, path1)
+    populateHash(srcdir_2, srcdir_2_hash, path2)
 
-print "collecting data about " + srcdir_2
-populateHash(srcdir_2, srcdir_2_hash, directory_of_interest_2a)
-populateHash(srcdir_2, srcdir_2_hash, directory_of_interest_2b)
-
-print "checking to see what hasn't landed in " + srcdir_2 
+print "checking to see what hasn't landed in " + srcdir_2
 
 bugs_that_have_not_landed = [];
 for index in enumerate(srcdir_1_hash):
     #check to see if it is also in srcdir_2_hash, if not print it.
     if (srcdir_2_hash.has_key(index[1]) == False):
         bugs_that_have_not_landed.append(index[1])
-
-
 
 html_out =\
 \
