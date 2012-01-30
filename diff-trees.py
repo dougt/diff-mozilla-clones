@@ -76,10 +76,23 @@ html_out =\
 "#bugnum { width: 15%; display: table-cell;}"\
 "#owner { width: 25%; display: table-cell;}"\
 "#summary { width: 60%; display: table-cell;}"\
-"</style></head><body>"\
+"</style>\n" \
+"<script>\n" \
+"function openAllBugs() {\n" \
+"  var bugs = document.getElementsByTagName(\"a\");\n" \
+"  for (a in bugs) {\n" \
+"    try {\n" \
+"      var decor = bugs[a].parentNode.parentNode.style.textDecoration;\n" \
+"      if (decor != \"line-through\")\n" \
+"        window.open(bugs[a].getAttribute(\"href\"));\n" \
+"    } catch(e) {}\n" \
+"  }\n" \
+"}\n" \
+"</script>\n" \
+"</head><body>"\
 "<h1>Diff Between" + srcdir_1 + " and " + srcdir_2 + "</h1>"\
-"<div id=\"container\">\n"
-
+"<div id=\"container\">\n" \
+"<button onClick=\"openAllBugs()\">Open All Bugs</button>\n"
 for index in enumerate(bugs_that_have_not_landed):
     info = getBugInfo(index[1])
     if info is None:
